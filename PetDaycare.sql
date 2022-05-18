@@ -170,64 +170,6 @@ values ('Vaccination','We require all pets to be current on certain vaccines, su
 
 
 --Create all nested GetID stored procedures
-------------------------------Table Detail START------------------------------
------------------------------GetDetailTypeID----------------------------------
-CREATE PROCEDURE ruihabGetDetailTypeID
-@detail_type varchar(50),
-@detail_type_ID INT OUTPUT
-AS
-
-SET @detail_type_ID = (SELECT DetailTypeID FROM DetailType WHERE DetailTypeName = @detail_type)
-GO
-
-----------------------------------InsertDetail---------------------------------
-CREATE PROCEDURE ruihabINSERT_Detail
-@detail_name varchar(50),
-@detail_desc varchar(255),
-@dt_name varchar(50)
-
-AS 
-DECLARE @dt_id int
-
-EXEC ruihabGetDetailTypeID
-@detail_type = @dt_name,
-@detail_type_ID = @dt_id OUTPUT
-
--- error-handling here
-IF @dt_id IS NULL
-BEGIN
-PRINT '@dt_id is empty...check spelling';
-THROW 56554, '@dt_id cannot be NULL; process terminating',1;
-END
-
-INSERT INTO Detail (DetailTypeID, DetailName, DetailDesc)
-VALUES (@dt_id, @dt_name, @detail_desc)
-GO
-------------------------------Table Detail END ------------------------------
-------------------------------Insert Table Detail------------------------------
-
-EXEC ruihabINSERT_Detail
-@detail_name = "FVRCP (Feline Viral Rhinotracheitis, Calicivirus & Panleukopenia)",
-@detail_desc = "1 or 3-yr. vaccine required",
-@dt_name = "Vaccination"
-
-EXEC ruihabINSERT_Detail
-@detail_name = "Rabies",
-@detail_desc = "1 or 3-yr. vaccine required",
-@dt_name = "Vaccination"
-
-EXEC ruihabINSERT_Detail
-@detail_name = "Simparica Trio",
-@detail_desc = "Simparica Trio is a once-a-month chewable that protects your dog with three proven ingredients designed for defense. ",
-@dt_name = "Medication"
-
-EXEC ruihabINSERT_Detail
-@detail_name = "eats from a raised feeder, must use a harness",
-@detail_desc = "Specific behaviors or requirements we need to be aware of",
-@dt_name = "Care"
-GO
-
-
 ----------------------------------InsertPetBreed---------------------------------
 INSERT into PetBreed (PetTypeID, PetBreedName,PetBreedDesc)
 values
@@ -260,10 +202,9 @@ values
 GO
 ------------------------------Table PetBreed END------------------------------
 
-
 ------------------------------Table PetOwner Start------------------------------
 ----------------------------------InsertPetOwner---------------------------------
-ALTER TABLE PetOwner ALTER column PetOwnerPhone varchar(15) null
+ALTER TABLE PetOwner ALTER column PetOwnerPhone varchar(15) not null
 
 with tmp as (
     select *,
@@ -285,49 +226,217 @@ select StudentFname,
        + '-' + REPLICATE('0',4-LEN(tmp.last4)) + tmp.last4) as phone_num 
         from tmp
 ------------------------------Table PetOwner END ------------------------------
+------------------------------Table Pet Start------------------------------
+----------------------------------InsertPet--------------------------------
 
-select * from PetDetail
+insert into Pet (PetName, PetOwnerID,PetGenderID, PetBreedID, PetDateOfBirth)
+VALUES
+('Bella',1,2,2,'2020-04-22'), 
+('Luna',2,2,3,'2017-02-12'), 
+('Lucy',3,2,4,'2014-05-24'), 
+('Daizy',4,2,5,'2008-01-29'), 
+('Zoe', 5,2,44,'2005-06-23'), 
+('Lily',6,2,33,'2009-08-05'), 
+('Lola', 7,2,26,'2012-12-02'), 
+('Bailey', 8,2,23,'2015-12-12'), 
+('Stella',9,2,4,'2016-11-05'), 
+('Molly',10,2,22,'2020-07-07'), 
+('Max',11,1,1,'2019-09-16'), 
+('Charlie',12,1,3,'2021-07-22'), 
+('Milo',13,1,5,'2022-03-26'), 
+('Buddy',14,1,45,'2022-04-21'), 
+('Rocky',15,1,34,'2021-05-16'), 
+('Bear', 1,1,32,'2005-01-07'), 
+('Leo', 3,1,2,'2009-06-09'), 
+('Duke',2,1,23,'2013-08-17'), 
+('Teddy',5,1,14,'2010-10-28'), 
+('Tucker',3,1,35,'2015-10-26') 
+------------------------------Table Pet END ------------------------------
 
-
-
-
-
------------------------------ GetPetTypeID----------------------------------
-CREATE PROCEDURE ruihabGetCityID
-@city varchar(50),
-@city_id INT OUTPUT
+------------------------------Table Detail START------------------------------
+-----------------------------GetDetailTypeID----------------------------------
+GO
+CREATE PROCEDURE ruihabGetDetailTypeID
+@detail_type varchar(50),
+@detail_type_ID INT OUTPUT
 AS
 
-SET @city_id = (SELECT CityID FROM City WHERE CityName = @city)
+SET @detail_type_ID = (SELECT DetailTypeID FROM DetailType WHERE DetailTypeName = @detail_type)
 GO
 
-BACKUP DATABASE  IMT_563_Proj_03 TO DISK = 'C:\ IMT_563_Proj_03.BAK'
-GO
-----------------------------------Create InsertPetBreed---------------------------------
-CREATE PROCEDURE ruihabINSERT_PetOwner
-@po_fname varchar(30),
-@po_lname varchar(30),
-@po_phone varchar(10),
-@po_address varchar(50),
-@po_dob date,
-@zip varchar(5),
-@city_name varchar(50)
+--DBCC CHECKIDENT('pet', RESEED, 0)
+
+----------------------------------InsertDetail---------------------------------
+CREATE PROCEDURE ruihabINSERT_Detail
+@detail_name varchar(50),
+@detail_desc varchar(255),
+@dt_name varchar(50)
 
 AS 
-DECLARE @ct_id int
+DECLARE @dt_id int
 
-EXEC ruihabGetCityID
-@city = @city_name,
-@city_id = @ct_id OUTPUT
+EXEC ruihabGetDetailTypeID
+@detail_type = @dt_name,
+@detail_type_ID = @dt_id OUTPUT
 
 -- error-handling here
-IF @ct_id IS NULL
+IF @dt_id IS NULL
 BEGIN
-PRINT '@ct_id is empty...check spelling';
-THROW 56554, '@ct_id cannot be NULL; process terminating',1;
+PRINT '@dt_id is empty...check spelling';
+THROW 56554, '@dt_id cannot be NULL; process terminating',1;
 END
 
-INSERT INTO PetOwner(PetOwnerFname,PetOwnerLname,PetOwnerPhone,PetOwnerAddress,PetOwnerDOB,ZIP,CityID)
-VALUES (@po_fname, @po_lname, @po_phone,@po_address,@po_dob,@zip,@city_name)
+INSERT INTO Detail (DetailTypeID, DetailName, DetailDesc)
+VALUES (@dt_id, @detail_name, @detail_desc)
+GO
+------------------------------Table Detail END ------------------------------
+--DBCC CHECKIDENT('DetailType', RESEED, 3)
+------------------------------Insert Table Detail------------------------------
+
+EXEC ruihabINSERT_Detail
+@detail_name = "FVRCP",
+@detail_desc = "1 or 3-yr. vaccine required",
+@dt_name = "Vaccination"
+
+EXEC ruihabINSERT_Detail
+@detail_name = "Rabies",
+@detail_desc = "1 or 3-yr. vaccine required",
+@dt_name = "Vaccination"
+
+EXEC ruihabINSERT_Detail
+@detail_name = "Simparica Trio",
+@detail_desc = "Simparica Trio is a once-a-month chewable that protects your dog with three proven ingredients designed for defense. ",
+@dt_name = "Medication"
+
+EXEC ruihabINSERT_Detail
+@detail_name = "eats from a raised feeder, must use a harness",
+@detail_desc = "Specific behaviors or requirements we need to be aware of",
+@dt_name = "Care"
 GO
 
+------------------------------Table PetDetail Start------------------------------
+----------------------------------InsertPetDetail--------------------------------
+Alter Table Detail ALTER column DetailDesc varchar(255) null
+GO
+
+CREATE PROCEDURE ruihabGetDetailID
+@dt_name varchar(50),
+@dt_id INT OUTPUT
+AS
+SET @dt_id = (SELECT DetailID FROM Detail WHERE DetailName = @dt_name)
+GO
+
+CREATE PROCEDURE ruihabGetPetID
+@pet_name varchar(50),
+@petowner_fn varchar(50),
+@petowner_ln varchar(50),
+@petowner_phone varchar(15),
+@pt_ID INT OUTPUT
+AS
+SET @pt_ID = (SELECT PetID FROM Pet p
+             JOIN PetOwner po on po.PetOwnerID = p.PetOwnerID
+             WHERE po.PetOwnerFname = @petowner_fn and po.PetOwnerLname = @petowner_ln and 
+             po.PetOwnerPhone = @petowner_phone and PetName = @pet_name
+             )
+GO
+
+Alter Table DetailType ALTER column DetailTypeDesc varchar(255) null
+GO
+
+--drop procedure ruihab_INSERT_PetDetail
+CREATE PROCEDURE ruihab_INSERT_PetDetail
+@pt_name varchar(50),
+@detail_n varchar(50),
+@po_fn varchar(50),
+@po_ln varchar(50),
+@po_phone varchar(15),
+@detail_descr varchar(255) null,
+@detailtype_descr varchar(255) null,
+@detail_typename varchar(50),
+@detail_date Date
+AS
+DECLARE @dt_ID INT, @pet_id INT
+
+EXEC ruihabGetDetailID
+ @dt_name = @detail_n,
+ @dt_id  = @dt_ID OUTPUT
+
+IF @dt_ID IS NULL
+    EXEC ruihabINSERT_Detail
+    @detail_name = @detail_n,
+    @detail_desc = @detail_descr,
+    @dt_name = @detail_typename
+
+    EXEC ruihabGetDetailID
+    @dt_name = @detail_n,
+    @dt_id  = @dt_ID OUTPUT
+
+EXEC ruihabGetPetID
+@pet_name = @pt_name,
+@petowner_fn = @po_fn,
+@petowner_ln = @po_ln,
+@petowner_phone = @po_phone,
+@pt_ID  = @pet_id  OUTPUT
+IF @pet_id IS NULL
+BEGIN
+PRINT 'So...I sense something wrong...this is failing...ask for help';
+THROW 54665, '@pet_id is NULL and process is terminating', 1;
+END
+BEGIN TRANSACTION T1
+
+INSERT INTO PetDetail (DetailID, PetID, PetDetailDate)
+VALUES (@dt_ID, @pet_id, @detail_date)
+IF @@ERROR <> 0
+BEGIN
+PRINT '@@ERROR is showing an error somewhere...terminating process'
+ROLLBACK TRANSACTION T1
+END
+ELSE
+COMMIT TRANSACTION T1
+GO
+
+EXEC ruihab_INSERT_PetDetail
+@pt_name = 'Bella',
+@detail_n = 'FVRCP',
+@po_fn= 'Pam',
+@po_ln = 'Cluster',
+@po_phone= '(339)-2665-3482',
+@detail_descr= '1 or 3-yr. vaccine required',
+@detailtype_descr = NULL,
+@detail_typename= 'Vaccination',
+@detail_date= '2022-05-17'
+
+EXEC ruihab_INSERT_PetDetail
+@pt_name = 'Bear',
+@detail_n = 'Rabies',
+@po_fn= 'Pam',
+@po_ln = 'Cluster',
+@po_phone= '(339)-2665-3482',
+@detail_descr= '1 or 3-yr. vaccine required',
+@detailtype_descr = NULL,
+@detail_typename= 'Vaccination',
+@detail_date= '2022-05-17'
+
+EXEC ruihab_INSERT_PetDetail
+@pt_name = 'Lily',
+@detail_n = 'eats from a raised feeder, must use a harness',
+@po_fn= 'Daine',
+@po_ln = 'Lubrano',
+@po_phone= '(936)-4677-5450',
+@detail_descr= "Specific behaviors or requirements we need to be aware of",
+@detailtype_descr = NULL,
+@detail_typename= 'Care',
+@detail_date= '2022-05-18'
+
+EXEC ruihab_INSERT_PetDetail
+@pt_name = 'Leo',
+@detail_n = 'has not teeth, need to feed him wet food',
+@po_fn= 'Gracie',
+@po_ln = 'Dedman',
+@po_phone= '(495)-3601-0502',
+@detail_descr= 'Specific behaviors or requirements we need to be aware of',
+@detailtype_descr = NULL,
+@detail_typename= 'Care',
+@detail_date= '2022-05-19'
+
+BACKUP DATABASE IMT_563_Proj_03 TO DISK = 'C:\SQL\IMT_563_Proj_03.BAK' WITH DIFFERENTIAL
