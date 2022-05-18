@@ -158,8 +158,7 @@ values
 
 -----insert PetType
 INSERT into PetType (PetType)
-values ('Cat'),('Dog')
-
+values ('Cat'),('Dog'), ('Unknown')
 select * from DetailType
 -----insert DetailType
 INSERT into DetailType (DetailTypeName,DetailTypeDesc)
@@ -226,9 +225,7 @@ select StudentFname,
        + '-' + REPLICATE('0',4-LEN(tmp.last4)) + tmp.last4) as phone_num 
         from tmp
 ------------------------------Table PetOwner END ------------------------------
-------------------------------Table Pet Start------------------------------
-----------------------------------InsertPet--------------------------------
-
+----populate some rows for Pet Table
 insert into Pet (PetName, PetOwnerID,PetGenderID, PetBreedID, PetDateOfBirth)
 VALUES
 ('Bella',1,2,2,'2020-04-22'), 
@@ -251,8 +248,6 @@ VALUES
 ('Duke',2,1,23,'2013-08-17'), 
 ('Teddy',5,1,14,'2010-10-28'), 
 ('Tucker',3,1,35,'2015-10-26') 
-------------------------------Table Pet END ------------------------------
-
 ------------------------------Table Detail START------------------------------
 -----------------------------GetDetailTypeID----------------------------------
 GO
@@ -264,8 +259,7 @@ AS
 SET @detail_type_ID = (SELECT DetailTypeID FROM DetailType WHERE DetailTypeName = @detail_type)
 GO
 
---DBCC CHECKIDENT('pet', RESEED, 0)
-
+--DBCC CHECKIDENT('PETType', RESEED, 2)
 ----------------------------------InsertDetail---------------------------------
 CREATE PROCEDURE ruihabINSERT_Detail
 @detail_name varchar(50),
@@ -439,4 +433,184 @@ EXEC ruihab_INSERT_PetDetail
 @detail_typename= 'Care',
 @detail_date= '2022-05-19'
 
+
+------------------------------Table Pet Start------------------------------
+Alter Table PetBreed ALTER column PetBreedDesc varchar(500) null
+select * from PetType
+GO
+
+CREATE PROCEDURE ruihabGetPetOwnerID
+@ptOwner_fn varchar(50),
+@ptOwner_ln varchar(50),
+@ptOwner_phone varchar(15),
+@ptOwnerID INT OUTPUT
+AS
+SET @ptOwnerID = (SELECT PetOwnerID FROM PetOwner WHERE PetOwnerFname = @ptOwner_fn and PetOwnerLname = @ptOwner_ln and PetOwnerPhone = @ptOwner_phone )
+GO
+
+CREATE PROCEDURE ruihabGetPetGenderID
+@ptGender varchar(50),
+@ptGenderID INT OUTPUT
+AS
+SET @ptGenderID = (SELECT PetGenderID FROM PetGender WHERE PetGenderName = @ptGender)
+GO
+
+CREATE PROCEDURE ruihabGetPetBreedID
+@ptBreedName varchar(50),
+@ptTypeName varchar(50),
+@ptBreedID INT OUTPUT
+AS
+SET @ptBreedID = (SELECT PetBreedID FROM PetBreed pb
+                   JOIN PetType pt on pt.PetTypeID = pb.PetBreedID
+            WHERE PetBreedName  = @ptBreedName and PetType = @ptTypeName)
+GO
+
+----------------------------------InsertPetOwner--------------------------
+--drop PROCEDURE ruihabGetCityID
+CREATE PROCEDURE ruihabGetCityID
+@CT_name varchar(50),
+@CityID INT OUTPUT
+AS
+SET @CityID = (SELECT CityID FROM City WHERE CityName = @CT_name)
+GO
+
+CREATE PROCEDURE ruihab_INSERT_PetOwner
+@pofn varchar(50),
+@poln varchar(50),
+@pophone varchar(15),
+@po_address varchar(50),
+@po_dob date,
+@zip varchar(5),
+@city_name varchar(50)
+AS
+DECLARE @city_id INT
+
+EXEC ruihabGetCityID
+@CT_name = @city_name,
+@CityID = @city_id OUTPUT
+
+IF @city_id IS NULL
+BEGIN
+    PRINT 'So...I sense something wrong...this is failing...ask for help';
+    THROW 54665, '@city_id is NULL and process is terminating', 1;
+END
+
+BEGIN TRANSACTION T1
+
+INSERT INTO PetOwner (PetOwnerFName,PetOwnerLName, PetOwnerPhone, PetOwnerAddress,PetOwnerDOB,ZIP,CityID)
+VALUES (@pofn,@poln, @pophone, @po_address,@po_dob,@zip,@city_id)
+IF @@ERROR <> 0
+BEGIN
+PRINT '@@ERROR is showing an error somewhere...terminating process'
+ROLLBACK TRANSACTION T1
+END
+ELSE
+COMMIT TRANSACTION T1
+GO
+
+--example:
+ruihab_INSERT_PetOwner
+@pofn = 'Bonnie',
+@poln = 'Bao',
+@pophone = '(858)247-8926',
+@po_address= '902 NE 43rd ST ',
+@po_dob= '1997-02-03',
+@zip= '98105',
+@city_name = 'Seattle'
+
+----------------------------------InsertPetBreed-------------------
+----------------------------------InsertPet--------------------------------
+--drop PROCEDURE ruihabGetCityID
+GO
+CREATE PROCEDURE ruihabGetPetTypeID
+@pet_type varchar(50),
+@pet_type_id INT OUTPUT
+AS
+SET @pet_type_id = (SELECT PetTypeID FROM PetType WHERE PetType = @pet_type)
+GO
+
+
+--drop procedure ruihab_INSERT_Pet
+GO
+CREATE PROCEDURE ruihab_INSERT_Pet
+@pet_nm varchar(50),
+@petOwner_FName varchar(50),
+@petOwner_LName varchar(50),
+@petOwner_Phone varchar(15),
+@petGD varchar(50),
+@petBdName varchar(50),
+@petTpName varchar(50),
+@pet_DOB Date,
+@peBdDescr varchar(500) null
+AS
+DECLARE @PETOWNERID INT, @PETGENDERID INT,@PETBREEDID INT,@PETTYPEID INT
+
+EXEC ruihabGetPetOwnerID
+@ptOwner_fn = @petOwner_FName,
+@ptOwner_ln = @petOwner_LName,
+@ptOwner_phone = @petOwner_Phone,
+@ptOwnerID = @PETOWNERID OUTPUT
+
+IF @PETOWNERID IS NULL
+BEGIN
+    PRINT 'PetOwnerId is empty...check spelling or fill pet owner information first';
+    THROW 54665, '@PETOWNERID is NULL and process is terminating', 1;
+END
+
+EXEC ruihabGetPetGenderID
+@ptGender = @petGD,
+@ptGenderID =@PETGENDERID OUTPUT
+IF @PETGENDERID IS NULL
+BEGIN
+PRINT 'So...I sense something wrong...this is failing...ask for help';
+THROW 54665, '@PETGENDERID is NULL and process is terminating', 1;
+END
+
+EXEC ruihabGetPetBreedID
+@ptBreedName = @petBdName,
+@ptTypeName = @petTpName,
+@ptBreedID = @PETBREEDID OUTPUT
+IF @PETBREEDID IS NULL
+BEGIN
+    INSERT into PetBreed (PetTypeID, PetBreedName,PetBreedDesc)
+    Values((Select PetTypeID from PetType where PetType = @petTpName),@petBdName,@peBdDescr)
+END
+
+SET @PETBREEDID = (Select MAX(PetBreedId) from PetBreed)
+
+BEGIN TRANSACTION T1
+
+INSERT INTO Pet (PetName,PetOwnerID, PetGenderID, PetBreedID,PetDateOfBirth)
+VALUES (@pet_nm,@PETOWNERID, @PETGENDERID, @PETBREEDID,@pet_DOB)
+IF @@ERROR <> 0
+BEGIN
+PRINT '@@ERROR is showing an error somewhere...terminating process'
+ROLLBACK TRANSACTION T1
+END
+ELSE
+COMMIT TRANSACTION T1
+GO
+
+--example
+EXEC ruihab_INSERT_Pet
+@pet_nm = 'Nimbus',
+@petOwner_FName = 'Bonnie',
+@petOwner_LName = 'Bao',
+@petOwner_Phone = '(858)247-8926',
+@petGD = 'Male',
+@petBdName = 'Unknown',
+@petTpName = 'Cat',
+@pet_DOB = '2019-11-20',
+@peBdDescr = NULL
+
+delete from PETOwner
+where PETOwnerID = 1270
+select * from PetBreed
+select * from petOwner
+--DBCC CHECKIDENT('PetBreed', RESEED, 48)
+------------------------------Table Pet END ------------------------------
+
 BACKUP DATABASE IMT_563_Proj_03 TO DISK = 'C:\SQL\IMT_563_Proj_03.BAK' WITH DIFFERENTIAL
+
+USE IMT_563_Proj_03
+select * from City
